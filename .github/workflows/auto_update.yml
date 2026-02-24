@@ -1,7 +1,7 @@
 name: Hourly News Sync
 on:
   schedule:
-    - cron: '0 * * * *' # This runs every hour automatically
+    - cron: '0 */6 * * *' # This runs every hour automatically
 jobs:
   run-script:
     runs-on: ubuntu-latest
