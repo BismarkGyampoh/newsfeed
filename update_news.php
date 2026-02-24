@@ -1,12 +1,17 @@
 <?php
-// 1. Connection settings
-$host = "sql308.infinityfree.com";
-$user = "if0_41238435";
-$pass = "fra123ncella";
-$dbname = "news_db";
+// Get secrets from GitHub Environment
+$host = getenv('DB_HOST');
+$user = getenv('DB_USER');
+$pass = getenv('DB_PASS'); 
+$dbname = getenv('DB_NAME');
+$apiKey = getenv('NEWS_API_KEY');
 
+// Connect to InfinityFree Database
 $conn = new mysqli($host, $user, $pass, $dbname);
-if ($conn->connect_error) die("Connection failed");
+
+if ($conn->connect_error) {
+    die("Connection failed: " . $conn->connect_error);
+}
 
 // 2. Fetch from API
 $apiKey = "pub_27bbc6510d114cd5a7aef849e6510ec8";
