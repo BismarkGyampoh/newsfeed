@@ -1,9 +1,9 @@
 name: Auto Update News Feed
 
 on:
-  workflow_dispatch: # Allows you to run this manually for testing
+  workflow_dispatch: # Manual button
   schedule:
-    - cron: '0 */6 * * *' # Runs every hour
+    - cron: '0 * * * *' # Runs every hour
 
 jobs:
   update-news:
@@ -17,11 +17,10 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.2'
-          extensions: mysqli, curl # Ensures PHP can talk to DB and Internet
+          extensions: pdo_pgsql, curl # Required for Supabase and API calls
 
       - name: Run news update script
         env:
-          # This links your GitHub Secrets to the PHP getenv() function
           DB_HOST: ${{ secrets.DB_HOST }}
           DB_USER: ${{ secrets.DB_USER }}
           DB_PASS: ${{ secrets.DB_PASS }}
