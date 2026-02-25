@@ -1,41 +1,34 @@
 <?php
 // Get credentials from GitHub Secrets
-$host = getenv('DB_HOST');
-$db   = getenv('DB_NAME');
-$user = getenv('DB_USER');
-$pass = getenv('DB_PASS');
+$host   = getenv('DB_HOST');
+$db     = getenv('DB_NAME');
+$user   = getenv('DB_USER');
+$pass   = getenv('DB_PASS');
 $apiKey = getenv('NEWS_API_KEY');
-$port = "6543"; // Supabase default
+$port   = "6543"; // As you confirmed earlier
 
 try {
-    // 1. Connect to Supabase using PDO
+    // 1. Connect to Supabase using PDO (The "PostgreSQL" Key)
     $dsn = "pgsql:host=$host;port=$port;dbname=$db;";
     $pdo = new PDO($dsn, $user, $pass, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
 
-    // 2. Fetch News from the API
-    // Using NewsAPI.org as an example (adjust URL as needed)
+    echo "Connection Successful! ";
+
+    // 2. Fetch News (Example API call)
     $url = "https://newsapi.org/v2/top-headlines?country=us&apiKey=$apiKey";
     
-    // We use curl for better error handling than file_get_contents
-    $ch = curl_init();
-    curl_setopt($ch, CURLOPT_URL, $url);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-    curl_setopt($ch, CURLOPT_USERAGENT, 'GitHub-Action-News-Bot');
-    $response = curl_exec($ch);
-    curl_close($ch);
-
+    // Set up a simple request
+    $context = stream_context_create([
+        "http" => ["header" => "User-Agent: PHP-News-Bot\r\n"]
+    ]);
+    $response = file_get_contents($url, false, $context);
     $data = json_decode($response, true);
 
-    if (isset($data['articles']) && is_array($data['articles'])) {
-        // 3. Prepare the SQL Statement
-        // "ON CONFLICT (url) DO NOTHING" prevents duplicate news articles
-        $stmt = $pdo->prepare("
-            INSERT INTO news_articles (title, description, url, published_at, source_name) 
-            VALUES (?, ?, ?, ?, ?) 
-            ON CONFLICT (url) DO NOTHING
-        ");
+    if (isset($data['articles'])) {
+        // 3. Save to the database
+        $stmt = $pdo->prepare("INSERT INTO news_articles (title, description, url, published_at, source_name) 
+                               VALUES (?, ?, ?, ?, ?) ON CONFLICT (url) DO NOTHING");
 
-        $count = 0;
         foreach ($data['articles'] as $article) {
             $stmt->execute([
                 $article['title'],
@@ -44,16 +37,13 @@ try {
                 date('Y-m-d H:i:s', strtotime($article['published_at'])),
                 $article['source']['name'] ?? 'Unknown'
             ]);
-            $count += $stmt->rowCount();
         }
-        echo "Successfully added $count new articles to Supabase.";
-    } else {
-        echo "No articles found or API error: " . ($data['message'] ?? 'Unknown error');
+        echo "Database updated with " . count($data['articles']) . " articles.";
     }
 
-} catch (Exception $e) {
-    // This will show up in your GitHub Action logs if it fails
-    error_log("Error: " . $e->getMessage());
-    exit(1); 
+} catch (PDOException $e) {
+    // If the connection fails, this will tell us why
+    echo "Database Error: " . $e->getMessage();
+    exit(1);
 }
 ?>
