@@ -3,7 +3,7 @@ name: Auto Update News Feed
 on:
   workflow_dispatch: # Manual button
   schedule:
-    - cron: '0 */6 * * *' # Runs every hour
+    - cron: '0  * * *' # Runs every hour
 
 jobs:
   update-news:
