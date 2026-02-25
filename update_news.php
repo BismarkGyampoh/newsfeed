@@ -5,7 +5,7 @@ $db   = getenv('DB_NAME');
 $user = getenv('DB_USER');
 $pass = getenv('DB_PASS');
 $apiKey = getenv('NEWS_API_KEY');
-$port = "5432"; // Supabase default
+$port = "6543"; // Supabase default
 
 try {
     // 1. Connect to Supabase using PDO
