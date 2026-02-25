@@ -5,27 +5,33 @@ $db     = getenv('DB_NAME');
 $user   = getenv('DB_USER');
 $pass   = getenv('DB_PASS');
 $apiKey = getenv('NEWS_API_KEY');
-$port   = "6543"; // As you confirmed earlier
+$port   = "6543"; // Your Supabase Pooler Port
 
 try {
-    // 1. Connect to Supabase using PDO (The "PostgreSQL" Key)
+    // 1. Connect to Supabase using PDO (PostgreSQL)
+    // This replaces the "new mysqli" line that was causing the error
     $dsn = "pgsql:host=$host;port=$port;dbname=$db;";
     $pdo = new PDO($dsn, $user, $pass, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
 
     echo "Connection Successful! ";
 
-    // 2. Fetch News (Example API call)
+    // 2. Fetch News (Using NewsAPI.org)
     $url = "https://newsapi.org/v2/top-headlines?country=us&apiKey=$apiKey";
     
-    // Set up a simple request
-    $context = stream_context_create([
+    $opts = [
         "http" => ["header" => "User-Agent: PHP-News-Bot\r\n"]
-    ]);
+    ];
+    $context = stream_context_create($opts);
     $response = file_get_contents($url, false, $context);
+    
+    if ($response === false) {
+        throw new Exception("Failed to fetch data from API.");
+    }
+
     $data = json_decode($response, true);
 
     if (isset($data['articles'])) {
-        // 3. Save to the database
+        // 3. Save to Supabase
         $stmt = $pdo->prepare("INSERT INTO news_articles (title, description, url, published_at, source_name) 
                                VALUES (?, ?, ?, ?, ?) ON CONFLICT (url) DO NOTHING");
 
@@ -38,12 +44,12 @@ try {
                 $article['source']['name'] ?? 'Unknown'
             ]);
         }
-        echo "Database updated with " . count($data['articles']) . " articles.";
+        echo "Successfully updated " . count($data['articles']) . " articles.";
     }
 
-} catch (PDOException $e) {
-    // If the connection fails, this will tell us why
-    echo "Database Error: " . $e->getMessage();
-    exit(1);
+} catch (Exception $e) {
+    // This will now show a PostgreSQL error instead of a MySQL error
+    echo "Error: " . $e->getMessage();
+    exit(1); 
 }
 ?>
